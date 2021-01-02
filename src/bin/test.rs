@@ -45,6 +45,12 @@ fn repl() {
 
 }
 
+fn bottom_up() {
+  let seen = std::collections::HashSet::<Val>::new();
+
+}
+
+
 
 
 #[derive(Debug)]
@@ -57,7 +63,45 @@ enum Lit {
 }
 
 #[derive(Debug,Copy,Clone)]
+struct SeenVal(Val);
+
+#[derive(Debug,Copy,Clone)]
 enum Val {Float(f32), Int(i32)}
+
+const HASH_PREC: f32 = 10000.;
+fn int_of_float(x:f32) -> i32 {
+  (x * HASH_PREC) as i32
+}
+
+impl std::hash::Hash for SeenVal {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    // a hash implementation that does int(float * 10000) to handle hashing floats
+    match self.0 {
+      Val::Int(v) => v.hash(state),
+      Val::Float(v) => {
+        int_of_float(v).hash(state);
+      }
+    };
+  }
+}
+
+impl std::cmp::PartialEq for SeenVal {
+  fn eq(&self, other: &SeenVal) -> bool {
+    match (self.0,other.0) {
+      (Val::Int(v1), Val::Int(v2)) => v1 == v2,
+      (Val::Float(v1), Val::Float(v2)) => {
+        // in order to uphold the promise of `Eq` later so we 
+        // can hash floats, we gotta modify it so that NaN == NaN
+        // when it comes to Vals at least
+        // (honestly no idea if this matters maybe its a bad idea)
+        if v1.is_nan() && v2.is_nan() {return true}
+        v1 == v2
+      }
+      _ => false,
+    }
+  }
+}
+impl std::cmp::Eq for SeenVal { }
 
 #[derive(Debug)]
 enum Expr {
