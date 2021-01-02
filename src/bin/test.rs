@@ -40,38 +40,55 @@ fn repl() {
       Ok(v) => v,
       Err(e) => {println!("Error during eval: {}",e.red()); continue}, 
     };
-    println!("{}",res);
+    println!("{:?}",res);
   }
 
 }
 
 
 
+#[derive(Debug)]
 enum BOp {Add, Sub, Mul, Div}
 
+#[derive(Debug)]
 enum Lit {
   Float(f32),
+  Int(i32),
 }
 
+#[derive(Debug,Copy,Clone)]
+enum Val {Float(f32), Int(i32)}
+
+#[derive(Debug)]
 enum Expr {
   Binop(Box<Expr>, BOp, Box<Expr>),
   Lit(Lit),
 }
 
 impl Expr {
-  fn eval(&self) -> Result<f32,String>{
+  fn eval(&self) -> Result<Val,String>{
       match self {
         Expr::Lit(lit) => match lit {
-          Lit::Float(v) => Ok(v.clone())
+          Lit::Float(v) => Ok(Val::Float(*v)),
+          Lit::Int(v) => Ok(Val::Int(*v))
         },
         Expr::Binop(e1,op,e2) => {
           let v1 = e1.eval()?;
           let v2 = e2.eval()?;
-            match op {
-            BOp::Add => Ok(v1 + v2),
-            BOp::Sub => Ok(v1 - v2),
-            BOp::Mul => Ok(v1 * v2),
-            BOp::Div => Ok(v1 / v2),
+          match (v1,v2) {
+            (Val::Float(v1), Val::Float(v2)) => match op {
+              BOp::Add => Ok(Val::Float(v1 + v2)),
+              BOp::Sub => Ok(Val::Float(v1 - v2)),
+              BOp::Mul => Ok(Val::Float(v1 * v2)),
+              BOp::Div => Ok(Val::Float(v1 / v2)),
+            },
+            (Val::Int(v1), Val::Int(v2)) => match op {
+              BOp::Add => Ok(Val::Int(v1 + v2)),
+              BOp::Sub => Ok(Val::Int(v1 - v2)),
+              BOp::Mul => Ok(Val::Int(v1 * v2)),
+              BOp::Div => Ok(Val::Int(v1 / v2)),
+            },
+            _ => Err(format!("unsupported types for {:?}: {:?} and {:?} during eval of {:?}",op,v1,v2,self))
           }
         }
       }
@@ -79,7 +96,7 @@ impl Expr {
 }
 
 
-impl<'a> std::str::FromStr for Expr {
+impl std::str::FromStr for Expr {
   type Err = String;
   fn from_str(s: &str) -> Result<Self, Self::Err> {
     let sexp = symbolic_expressions::parser::parse_str(s.trim()).map_err(|e|e.to_string())?;
@@ -88,8 +105,13 @@ impl<'a> std::str::FromStr for Expr {
       match sexp {
         Sexp::Empty => Err("empty line".into()),
         Sexp::String(s) => {
-          let val = s.parse::<f32>().map_err(|_| format!("Expected float literal but got {} ",s))?;
-          Ok(Expr::Lit(Lit::Float(val)))
+          if s.contains(".") { // assume Float
+            let val = s.parse::<f32>().map_err(|_| format!("Expected float literal but got {} ",s))?;
+            Ok(Expr::Lit(Lit::Float(val)))
+          } else { // assume int
+            let val = s.parse::<i32>().map_err(|_| format!("Expected int literal but got {} ",s))?;
+            Ok(Expr::Lit(Lit::Int(val)))
+          }
         }
         Sexp::List(vec) => {
           if vec.len() != 3 {return Err(format!("Expected 3 items in list but got {} for sexp {:?}",vec.len(),vec))}
