@@ -9,3 +9,6 @@ edition = "2018"
 [dependencies]
 egg = "0.6.0"
 symbolic_expressions = "5.0.3"
+rustyline = "7.1.0"
+colored = "2.0.0"
+

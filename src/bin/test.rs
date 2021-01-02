@@ -1,5 +1,12 @@
 use symbolic_expressions::Sexp;
-fn main() -> () {
+use colored::*;
+
+fn main() {
+  test();
+  repl();
+}
+
+fn test(){
   let x = Expr::Binop(Box::new(Expr::Lit(Lit::Float(1.))),BOp::Add,Box::new(Expr::Lit(Lit::Float(2.))));
   let res = x.eval();
   println!("{:?}",res);
@@ -9,6 +16,33 @@ fn main() -> () {
   let y: Expr = "(+ 2 (* 2 2))".parse().unwrap();
   let res = y.eval();
   println!("{:?}",res);
+}
+
+
+fn repl() {
+  let mut rl = rustyline::Editor::<()>::new();
+  loop {
+    let line = match rl.readline(">>> ") {
+      Ok(line) => line,
+      Err(e) => match e {
+        rustyline::error::ReadlineError::Interrupted => continue,
+        rustyline::error::ReadlineError::Eof => break,
+        e => panic!("unexpected error: {:?}",e),
+      }
+    };
+    rl.add_history_entry(line.as_str());
+    if line.trim().is_empty() {continue}
+    let e:Expr = match line.parse() {
+      Ok(e) => e,
+      Err(e) => {println!("Error during parse: {}",e.red()); continue},
+    };
+    let res = match e.eval(){
+      Ok(v) => v,
+      Err(e) => {println!("Error during eval: {}",e.red()); continue}, 
+    };
+    println!("{}",res);
+  }
+
 }
 
 
@@ -40,7 +74,6 @@ impl Expr {
             BOp::Div => Ok(v1 / v2),
           }
         }
-
       }
   }
 }
@@ -71,7 +104,7 @@ impl<'a> std::str::FromStr for Expr {
           };
           let args: Result<Vec<_>,_> = (&vec[1..]).iter().map(|arg| expr_of_sexp(arg)).collect();
           let mut args = args?; //todo see if theres a way to put this on prev line
-          Ok(Expr::Binop(Box::new(args.pop().unwrap()),bop,Box::new(args.pop().unwrap())))
+          Ok(Expr::Binop(Box::new(args.remove(0)),bop,Box::new(args.remove(0))))
         }
       }
     }
