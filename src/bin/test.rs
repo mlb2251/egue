@@ -87,15 +87,9 @@ fn run_bottom_up(env:&Vec<bottom_up::Val>) {
     Prod::new("map",    IntList,    &[IntToInt,IntList],      bottom_up::dsl_funcs::map),
     Prod::new("add1",   IntToInt,   &[],                      bottom_up::dsl_funcs::make_add1),
     Prod::new("mul2",   IntToInt,   &[],                      bottom_up::dsl_funcs::make_mul2),
-    Prod::new("$0",     IntToInt,   &[],                      bottom_up::dsl_funcs::idx_0),
-    Prod::new("$1",     IntToInt,   &[],                      bottom_up::dsl_funcs::idx_1),
+    Prod::new("$0",     Index(0),   &[],                      bottom_up::dsl_funcs::idx_0),
+    Prod::new("$1",     Index(1),   &[],                      bottom_up::dsl_funcs::idx_1),
   ];
-  for (i,val) in env.iter().enumerate() {
-    let name = format!("${}",i); // eg $0
-    // prods.push(
-    //   Prod::new(&name,   val.ty(),   &[],                      |_args| Ok(val)),
-    // )
-  }
 
 
   let mut found_int_to_int = Vec::<Val>::new();
@@ -110,7 +104,7 @@ pub mod bottom_up {
   pub type DSLFunc = fn(&[Val], &[Val]) -> Result;
   pub type Id = usize;
   #[derive(Debug, Copy, Clone)]
-  pub enum Type {Int, IntList, IntToInt}
+  pub enum Type {Int, IntList, IntToInt, Index(usize)}
   pub enum Error {
     Runtime,
     TypeError,
