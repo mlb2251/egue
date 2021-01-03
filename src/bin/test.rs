@@ -3,8 +3,25 @@ use colored::*;
 
 
 fn main() {
-  test();
-  repl();
+  // let f: fn(&i32) -> i32 = |x| x+1;
+  // let ptr : *const fn(&i32) -> i32 = &f;
+  // println!("{:?}",ptr);
+  // enum Foo {
+  //   A(i32),
+  //   B(f32)
+  // }
+  // use Foo::*;
+  // let x = vec![A(10), A(11), B(14.)];
+  // fn func(x: &[Foo]) {
+  //   for i in (*x).iter() {
+  //     // *i = A(10);
+  //   }
+  //   //let () = A(10);
+  // }
+  // func(&x);
+  // func(&x);
+  //test();
+  //repl();
 }
 
 fn test(){
@@ -61,46 +78,104 @@ fn repl() {
 //   bottom_up::Val::IntList(xs.iter().map(|x|f(x)).collect())
 // }
 
-fn run_bottom_up() {
+fn run_bottom_up(env:&Vec<bottom_up::Val>) {
+  // $0 is env[0], $1 is env[1], etc
   use bottom_up::*;
   use bottom_up::Type::*;
-  let seen = std::collections::HashSet::<Val>::new();
-  let prods = vec![
+  let mut seen = std::collections::HashSet::<Val>::new();
+  let mut prods = vec![
     Prod::new("map",    IntList,    &[IntToInt,IntList],      bottom_up::dsl_funcs::map),
     Prod::new("add1",   IntToInt,   &[],                      bottom_up::dsl_funcs::make_add1),
     Prod::new("mul2",   IntToInt,   &[],                      bottom_up::dsl_funcs::make_mul2),
+    Prod::new("$0",     IntToInt,   &[],                      bottom_up::dsl_funcs::idx_0),
+    Prod::new("$1",     IntToInt,   &[],                      bottom_up::dsl_funcs::idx_1),
   ];
+  for (i,val) in env.iter().enumerate() {
+    let name = format!("${}",i); // eg $0
+    // prods.push(
+    //   Prod::new(&name,   val.ty(),   &[],                      |_args| Ok(val)),
+    // )
+  }
+
+
   let mut found_int_to_int = Vec::<Val>::new();
   let mut found_int = Vec::<Val>::new();
   let mut found_int_list = Vec::<Val>::new();
-
 
 }
 
 pub mod bottom_up {
 
   pub type Result = std::result::Result<Val,Error>;
+  pub type DSLFunc = fn(&[Val], &[Val]) -> Result;
+  pub type Id = usize;
+  #[derive(Debug, Copy, Clone)]
+  pub enum Type {Int, IntList, IntToInt}
   pub enum Error {
     Runtime,
     TypeError,
+    IndexError,
     Other(String),
+  }
+  pub enum Val {
+    // an actual value of an intermediate or final result
+    // in the DSL
+    Int(i32),
+    IntList(Vec<i32>),
+    IntToInt(fn(&i32) -> i32)
+  }
+  pub struct Prod {
+    // a production rule
+    pub name: String,
+    pub ty: Type,
+    pub args: [Option<Type>;3],
+    pub func: DSLFunc,
+  }
+  #[derive(Debug)]
+  pub struct Found{
+    // a constructed expression we found
+    pub f: Id,
+    pub args: [Option<Id>;3],
+    pub val: Val,
   }
 
   pub mod dsl_funcs {
     use super::*;
     use super::Val::*;
     use super::Error::*;
-    pub fn map(args: &[Val]) -> Result {
+    pub fn map(args: &[Val], _env: &[Val]) -> Result {
       if let [IntToInt(f),IntList(xs)] = args {
         Ok(IntList(xs.iter().map(|x|f(x)).collect()))
       } else { Err(TypeError) }
     }
-    pub fn make_add1(args: &[Val]) -> Result{
+    pub fn make_add1(args: &[Val], _env: &[Val]) -> Result{
       if let [] = args {
         Ok(IntToInt(|x|x+1))
       } else { Err(TypeError) }
     }
-    pub fn make_mul2(args: &[Val]) -> Result{
+    pub fn idx_0(args: &[Val], env: &[Val]) -> Result{
+      if let [] = args {
+        // explicit clone is needed here. In stuff like map() we construct
+        // a new value so you get a Val naturally, but here we just lookup
+        // a &Val so we need to clone it into a fresh Val
+        env.get(0).ok_or(IndexError).map(|v|v.clone())
+      } else { Err(TypeError) }
+    }
+    pub fn idx_1(args: &[Val], env: &[Val]) -> Result{
+      if let [] = args {
+        env.get(1).ok_or(IndexError).map(|v|v.clone())
+      } else { Err(TypeError) }
+    }
+    // pub fn make_const(v: Val) -> DSLFunc{
+    //   let v = v.clone();
+    //   let f = |args: &[Val]| -> Result{
+    //     if let [] = args {
+    //       Ok(v)
+    //     } else { Err(TypeError) }
+    //   };
+    //   f
+    // }
+    pub fn make_mul2(args: &[Val], _env:&[Val]) -> Result{
       if let [] = args {
         Ok(IntToInt(|x|x*2))
       } else { Err(TypeError) }
@@ -108,18 +183,27 @@ pub mod bottom_up {
   }
 
 
-  pub type Id = usize;
   // pub type Lambda = fn(&[Val]) -> Val;
 
-  #[derive(Debug, Copy, Clone)]
-  pub enum Type {Int, IntList, IntToInt}
 
-  pub enum Val {
-    // an actual value of an intermediate or final result
-    // in the DSL
-    Int(i32),
-    IntList(Vec<i32>),
-    IntToInt(fn(&i32) -> i32)
+  impl Val {
+    pub fn ty(&self) -> Type {
+      match self {
+        Val::Int(_) => Type::Int,
+        Val::IntList(_) => Type::IntList,
+        Val::IntToInt(_) => Type::IntToInt,
+      }
+    }
+  }
+
+  impl std::clone::Clone for Val {
+    fn clone(&self) -> Val {
+      match self {
+        Val::Int(v) => Val::Int(v.clone()),
+        Val::IntList(v) => Val::IntList(v.clone()),
+        Val::IntToInt(f) => Val::IntToInt(f.clone()),
+      }
+    }
   }
 
   // a hash impl for Val that handles the IntToInt case
@@ -152,6 +236,7 @@ pub mod bottom_up {
       }
     }
   }
+  impl std::cmp::Eq for Val {}
 
   impl std::fmt::Debug for Val {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -163,32 +248,6 @@ pub mod bottom_up {
     }
   }
 
-  #[derive(Debug)]
-  pub struct Found{
-    // a constructed expression we found
-    pub f: Id,
-    pub args: [Option<Id>;3],
-    pub val: Val,
-  }
-
-  //use std::marker::PhantomData;
-  type DSLFunc = fn(&[Val]) -> Result;
-
-  pub struct Prod 
-    //F: Fn(&[&Val]) -> Val
-    //F: Fn(I) -> Result,
-  {
-    // a production rule
-    pub name: String,
-    pub ty: Type,
-    pub args: [Option<Type>;3],
-    //pub id: Id,
-    pub func: DSLFunc,
-    // Use phantom data to tell the compiler to act like we actually
-    // care about the types of I and O (and they should be used in type checking) even though they aren't
-    // actually the types of anything in the struct directly
-    //_phantom1: PhantomData<I>,
-  }
 
   impl Prod
   { 
