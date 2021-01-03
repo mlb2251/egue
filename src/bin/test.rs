@@ -66,8 +66,9 @@ fn run_bottom_up() {
   use bottom_up::Type::*;
   //let seen = std::collections::HashSet::<SeenVal>::new();
   let prods = vec![
-    Prod::new("map", IntList, &[IntToInt,IntList], bottom_up::funcs::map),
-    Prod::new("add1", IntToInt, &[], bottom_up::funcs::make_add1),
+    Prod::new("map",    IntList,    &[IntToInt,IntList],      bottom_up::funcs::map),
+    Prod::new("add1",   IntToInt,   &[],                      bottom_up::funcs::make_add1),
+    Prod::new("mul2",   IntToInt,   &[],                      bottom_up::funcs::make_mul2),
   ];
   let mut found_int_to_int = Vec::<Val>::new();
   let mut found_int = Vec::<Val>::new();
@@ -94,11 +95,13 @@ pub mod bottom_up {
     }
     pub fn make_add1(args: &[Val]) -> Result{
       if let [] = args {
-        Ok(IntToInt(add1))
+        Ok(IntToInt(|x|x+1))
       } else { Err(TypeError) }
     }
-    fn add1(x:&i32) -> i32 {
-      x+1
+    pub fn make_mul2(args: &[Val]) -> Result{
+      if let [] = args {
+        Ok(IntToInt(|x|x*2))
+      } else { Err(TypeError) }
     }
   }
 
