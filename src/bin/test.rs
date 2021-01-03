@@ -64,15 +64,17 @@ fn repl() {
 fn run_bottom_up() {
   use bottom_up::*;
   use bottom_up::Type::*;
-  //let seen = std::collections::HashSet::<SeenVal>::new();
+  let seen = std::collections::HashSet::<Val>::new();
   let prods = vec![
-    Prod::new("map",    IntList,    &[IntToInt,IntList],      bottom_up::funcs::map),
-    Prod::new("add1",   IntToInt,   &[],                      bottom_up::funcs::make_add1),
-    Prod::new("mul2",   IntToInt,   &[],                      bottom_up::funcs::make_mul2),
+    Prod::new("map",    IntList,    &[IntToInt,IntList],      bottom_up::dsl_funcs::map),
+    Prod::new("add1",   IntToInt,   &[],                      bottom_up::dsl_funcs::make_add1),
+    Prod::new("mul2",   IntToInt,   &[],                      bottom_up::dsl_funcs::make_mul2),
   ];
   let mut found_int_to_int = Vec::<Val>::new();
   let mut found_int = Vec::<Val>::new();
   let mut found_int_list = Vec::<Val>::new();
+
+
 }
 
 pub mod bottom_up {
@@ -84,7 +86,7 @@ pub mod bottom_up {
     Other(String),
   }
 
-  pub mod funcs {
+  pub mod dsl_funcs {
     use super::*;
     use super::Val::*;
     use super::Error::*;
@@ -119,6 +121,38 @@ pub mod bottom_up {
     IntList(Vec<i32>),
     IntToInt(fn(&i32) -> i32)
   }
+
+  // a hash impl for Val that handles the IntToInt case
+  // by hashing the underlying function pointer
+  impl std::hash::Hash for Val {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+      match self {
+        Val::Int(v) => v.hash(state),
+        Val::IntList(v) => v.hash(state),
+        Val::IntToInt(f) => {
+          let ptr : *const fn(&i32) -> i32 = f;
+          ptr.hash(state)
+        }
+      };
+    }
+  }
+  // a hash impl for Val that handles the IntToInt case
+  // by hashing the underlying function pointer
+  impl std::cmp::PartialEq for Val {
+    fn eq(&self, other: &Val) -> bool {
+      match (self,other) {
+        (Val::Int(v),Val::Int(o)) => v == o,
+        (Val::IntList(v),Val::IntList(o)) => v == o,
+        (Val::IntToInt(f),Val::IntToInt(o)) => {
+          let ptr : *const fn(&i32) -> i32 = f;
+          let ptr2 : *const fn(&i32) -> i32 = o;
+          ptr == ptr2
+        }
+        _ => false,
+      }
+    }
+  }
+
   impl std::fmt::Debug for Val {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
       match self {
