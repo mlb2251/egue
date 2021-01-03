@@ -1,5 +1,5 @@
 use colored::*;
-use std::convert::TryInto;
+//use std::convert::TryInto;
 
 
 fn main() {
@@ -134,52 +134,36 @@ pub mod bottom_up {
     pub val: Val,
   }
 
-  use std::marker::PhantomData;
+  //use std::marker::PhantomData;
+  type DSLFunc = fn(&[Val]) -> Result;
 
-  #[derive(Debug)]
-  pub struct Prod<F,I> where
+  pub struct Prod 
     //F: Fn(&[&Val]) -> Val
-    F: Fn(I) -> Result,
+    //F: Fn(I) -> Result,
   {
     // a production rule
     pub name: String,
     pub ty: Type,
     pub args: [Option<Type>;3],
     //pub id: Id,
-    pub func: F,
+    pub func: DSLFunc,
     // Use phantom data to tell the compiler to act like we actually
     // care about the types of I and O (and they should be used in type checking) even though they aren't
     // actually the types of anything in the struct directly
-    _phantom1: PhantomData<I>,
+    //_phantom1: PhantomData<I>,
   }
 
-  impl<F,I> Prod<F,I> where
-    F: Fn(I) -> Result,
+  impl Prod
   { 
-    pub fn new(name:&str, ty: Type, args_slice: &[Type], func: F) -> Prod<F,I> {
+    pub fn new(name:&str, ty: Type, args_slice: &[Type], func: DSLFunc) -> Prod {
       if args_slice.len() > 3 {panic!("Too many args")};
       let mut args = [None;3];
       for (i,ty) in args_slice.iter().enumerate() {
         args[i] = Some(*ty);
       }
-      Prod {name:String::from(name), ty, args:args, func, _phantom1:PhantomData}
+      Prod {name:String::from(name), ty, args, func}
     }
   }
-
-
-  // enum IntProd {
-  //   Head(IntListId,IntId),
-  //   Tail(IntListId,IntId),
-  //   Sum(IntListId),
-  // }
-  // enum IntListProd {
-  //   Map(IntToIntId, IntListId),
-  // }
-  // enum IntToIntProd {
-  //   Add1,
-  //   Add2,
-  //   Mul2,
-  // }
 
 }
 
