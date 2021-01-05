@@ -23,6 +23,15 @@ fn main() {
   //test();
   //repl();
 }
+struct Foo;
+
+fn foo(x: &mut Foo) {
+  bar(&x)
+}
+fn bar(x: &Foo) {
+
+}
+
 
 fn test(){
   use crate::simple::*;
@@ -81,20 +90,23 @@ fn repl() {
 fn run_bottom_up(env:&Vec<bottom_up::Val>) {
   // $0 is env[0], $1 is env[1], etc
   use bottom_up::*;
-  use bottom_up::Type::*;
-  let mut seen = std::collections::HashSet::<Val>::new();
-  let mut prods = vec![
-    Prod::new("map",    IntList,    &[IntToInt,IntList],      bottom_up::dsl_funcs::map),
-    Prod::new("add1",   IntToInt,   &[],                      bottom_up::dsl_funcs::make_add1),
-    Prod::new("mul2",   IntToInt,   &[],                      bottom_up::dsl_funcs::make_mul2),
-    Prod::new("$0",     Index(0),   &[],                      bottom_up::dsl_funcs::idx_0),
-    Prod::new("$1",     Index(1),   &[],                      bottom_up::dsl_funcs::idx_1),
-  ];
 
+  let prods = {
+    use bottom_up::dsl_funcs::*;
+    use bottom_up::Type::*;
+    vec![
+      Prod::new("map",    IntList,    &[IntToInt,IntList],      map),
+      Prod::new("add1",   IntToInt,   &[],                      make_add1),
+      Prod::new("mul2",   IntToInt,   &[],                      make_mul2),
+      Prod::new("$0",     Index(0),   &[],                      idx_0),
+      Prod::new("$1",     Index(1),   &[],                      idx_1),
+    ]
+  };
 
-  let mut found_int_to_int = Vec::<Val>::new();
-  let mut found_int = Vec::<Val>::new();
-  let mut found_int_list = Vec::<Val>::new();
+  let mut search_state = SearchState::new(prods);
+
+  let max_weight = 10;
+  // synth loop
 
 }
 
@@ -118,20 +130,214 @@ pub mod bottom_up {
     IntList(Vec<i32>),
     IntToInt(fn(&i32) -> i32)
   }
+  #[derive(Default)]
+  pub struct SearchState {
+    // holds the current state of the search
+    pub prods: Vec<Prod>, // production rules
+    pub seen: std::collections::HashSet::<Val>, // set of values seen so far
+    pub found_vecs: [Vec<Found>; 3],
+    dummy_vec: Vec<Found>,
+    target_weight: usize,
+  }
   pub struct Prod {
     // a production rule
     pub name: String,
     pub ty: Type,
     pub args: [Option<Type>;3],
+    pub weight: usize,
     pub func: DSLFunc,
   }
   #[derive(Debug)]
   pub struct Found{
     // a constructed expression we found
-    pub f: Id,
+    pub prod: Id,
     pub args: [Option<Id>;3],
+    pub weight: usize,
     pub val: Val,
   }
+
+  //  struct ProdIter<'a> {
+  //    prod: &'a Prod,
+  //    search_state: &'a SearchState,
+  //    remapped_found_vecs: [&'a Vec<Found>; 3], // remapped so that the first one is for the first type etc
+  //    weight: usize,
+  //    indices: [usize; 3],
+  //    curr_idx: u8, // either 0 1 or 2 corresponding to the 3 possible indices
+  //    finished: bool,
+  //  }
+  
+  //  impl<'a> ProdIter<'a> {
+  //    pub fn new(prod: &'a Prod, search_state: &'a SearchState) -> ProdIter<'a> {
+  //      ProdIter {prod, search_state, weight:search_state.target_weight, indices:[0,0,0]}
+  //    }
+  //  }
+  // impl<'a> Iterator for ProdIter<'a> {
+  //   type Item = [Option<&'a Found>;3];
+  //   fn next(&mut self) -> Option<Self::Item> {
+  //     if self.finished {return None;}
+  //     /// ok lets grab the next valid set of 3 items
+  //     /// starting by looking at the one we're inspecting now
+  //     let [i,j,k] = self.indices;
+  //     let [vi,vj,vk] = self.remapped_found_vecs;
+  //     loop {
+  //       let weight = vi[i].weight + vj[j].weight + vk[k].weight;
+  //       if weight > self.weight {
+  //         // we exceeded our weight, need to reset an index
+  //         // to be precise, we need to move our current index back to zero, step back a single index, and increment it by one
+  //         /// 
+  //         if curr_idx == 0 {
+  //           i = 0
+  //         }
+  //       }
+
+  //     }
+
+
+  //     self.remapped_found_vecs[0].get(self.indices[0]);
+  //     ()
+  //   }
+  // }
+
+  impl SearchState {
+    pub fn new(prods: Vec<Prod>) -> SearchState {
+      SearchState {prods, ..Default::default()}
+    }
+    fn possible_values(&self, arg: Type) -> &Vec<Found> {
+        match arg {
+          Type::Int => &self.found_vecs[0],
+          Type::IntList => &self.found_vecs[1],
+          Type::IntToInt => &self.found_vecs[2],
+          _ => panic!("unexpected type ahhh"),
+        }
+    }
+
+    pub fn check_limit(&self, prod:&Prod, args: &[&Found]) -> bool {
+      let weight = prod.weight + args.iter().map(|found| found.weight).sum::<usize>();
+      return weight <=self.target_weight;
+    }
+    pub fn try_add(&self, prod:&Prod, args: &[&Found]) -> Option<Found>{
+      let weight = prod.weight + args.iter().map(|found| found.weight).sum::<usize>();
+       if weight != self.target_weight { return None }
+        //TODOTODOTODO
+        panic!("ACTUALLY GO AND IMPLEMEMNT THE ADDITION HERE!!!");
+    }
+
+    pub fn run(&mut self) {
+      println!("Searching for weight={} expressions",self.target_weight);
+
+      let mut to_add = Vec::<Found>::new();
+
+      for prod in self.prods.iter() {
+        //let [arg1,arg2,arg3] = prod.args;
+        // let x:Vec<_> = prod.args
+        //   .iter()
+        //   .filter(|x|x.is_some())
+        //   .map(|x|x.unwrap()) // probably a better way to do this
+        //   .map(|ty|self.possible_values(ty))
+        //   .collect();
+        
+        // let it = ProdIter::new(&prod,&self);
+        // for args in it {
+        //   let [a0,a1,a2] = args;
+          
+        //   prod.func()
+        // }
+        let args:Vec<_> = prod.args.iter().filter(|x|x.is_some()).map(|&ty|self.possible_values(ty.unwrap())).collect();
+
+        // I know this is terrifying code but let me explain
+        // first of all this is just a fun quick project so its fine
+        // second i wanted stuff all flat without function calls for speed since we really do know
+        // that we only care about these 4 cases. If you try to get into stuff that doesnt
+        // do top level branching then you start needing sentinel values and they need to type
+        // check correctly so it gets annoying. Also maybe you could do this all with 3 nested
+        // maps but idk.
+        // TLDR: Just move the hell on and go work on something else now that this works
+
+        // if you wanted you could write some bits as closures (tho also macros would be nice?):
+          //let check = |args| {self.check_limit(prod,args)};
+          //let insert = |args| {self.try_add(prod,args).map(|x|to_add.push(x));};
+
+        match args.len() {
+          0 => {self.try_add(prod,&[]).map(|x|to_add.push(x));},
+
+          1 => {
+            for arg0 in args[0].iter() {
+              if !self.check_limit(prod,&[arg0]) { break }
+              self.try_add(prod,&[arg0]).map(|x|to_add.push(x));
+              //insert(&[arg0])
+            }
+          },
+
+          2 => {
+            for arg0 in args[0].iter() {
+                if !self.check_limit(prod,&[arg0]) { break }
+                for arg1 in args[1].iter() {
+                  if !self.check_limit(prod,&[arg0,arg1]) { break }
+                  self.try_add(prod,&[arg0,arg1]).map(|x|to_add.push(x));
+                }
+            }
+          },
+          3 => {
+            for arg0 in args[0].iter() {
+                if !self.check_limit(prod,&[arg0]) { break }
+                for arg1 in args[1].iter() {
+                  if !self.check_limit(prod,&[arg0,arg1]) { break }
+                  for arg2 in args[1].iter() {
+                    if self.check_limit(prod,&[arg0,arg1,arg2]) { break }
+                    self.try_add(prod,&[arg0,arg1,arg2]).map(|x|to_add.push(x));
+                  }
+                }
+            }
+          },
+          _ => panic!("didnt expect >3 args")
+        }
+
+
+
+
+        // for arg0 in args[0].iter() {
+        //   for arg1 in args[1].iter() {
+        //     if arg0.weight + arg1.weight + prod.weight > self.target_weight {break;}
+        //     for arg2 in args[2].iter() {
+        //       let weight = arg0.weight + arg1.weight + arg2.weight + prod.weight;
+        //       if weight > self.target_weight {break;}
+        //       // TODO hmm so is this enough? do we only ever actually increment the innermost one before stepping and all
+        //       // TODO skips are really just skips on the innermost iterator?
+
+        //       // TODO watch out for cases with only two args? one arg? I suppose the third arg could be a sentinel value as 
+        //       // TODO long as it points to a length-1 vector? Yeah just add a dummy vec that possible_values points to
+        //       // This is actually quite a good call. Make it a Found thing with zero weight
+        //       // hmm tho also it seems weird to use a sentinel since the value itself doesn't have any meaning
+        //       // TODO ACK idk. Stop and think before you do anything, whatever you do
+        //     }
+        //   }
+        // }
+        
+        
+        // if let Some(ty) = prod.args[0] {
+        //   let arg0 = self.possible_values(ty);
+        //   if let Some(ty) = prod.args[1] {
+        //     let arg1 = self.possible_values(ty);
+        //     if let Some(ty) = prod.args[2] {
+        //       let arg2 = self.possible_values(ty);
+
+
+
+        //       let res = prod.func(&[]);
+              
+        //     }
+        //   }
+        // }
+
+      }
+    }
+  }
+  // impl Iterator for SearchState {
+  //   type Item = ;
+  //   fn next(&mut self) -> Option<Self::Item> {
+
+  //   }
+  // }
 
   pub mod dsl_funcs {
     use super::*;
@@ -251,7 +457,7 @@ pub mod bottom_up {
       for (i,ty) in args_slice.iter().enumerate() {
         args[i] = Some(*ty);
       }
-      Prod {name:String::from(name), ty, args, func}
+      Prod {name:String::from(name), ty, args, func, weight:1}
     }
   }
 
