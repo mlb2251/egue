@@ -136,7 +136,6 @@ pub mod bottom_up {
     pub prods: Vec<Prod>, // production rules
     pub seen: std::collections::HashSet::<Val>, // set of values seen so far
     pub found_vecs: [Vec<Found>; 3],
-    dummy_vec: Vec<Found>,
     target_weight: usize,
   }
   pub struct Prod {
@@ -222,7 +221,8 @@ pub mod bottom_up {
         panic!("ACTUALLY GO AND IMPLEMEMNT THE ADDITION HERE!!!");
     }
 
-    pub fn run(&mut self) {
+    pub fn step(&mut self) {
+      self.target_weight += 1;
       println!("Searching for weight={} expressions",self.target_weight);
 
       let mut to_add = Vec::<Found>::new();
@@ -295,6 +295,7 @@ pub mod bottom_up {
 
 
 
+
         // for arg0 in args[0].iter() {
         //   for arg1 in args[1].iter() {
         //     if arg0.weight + arg1.weight + prod.weight > self.target_weight {break;}
@@ -330,6 +331,20 @@ pub mod bottom_up {
         // }
 
       }
+
+
+      // update with newly found values
+      for found in to_add.into_iter(){
+        match found.val.ty() {
+          Type::Int => self.found_vecs[0].push(found),
+          Type::IntList => self.found_vecs[1].push(found),
+          Type::IntToInt => self.found_vecs[2].push(found),
+          Type::Index(i) => panic!("havent handled Index lookup yet"),
+        }
+      }
+
+
+
     }
   }
   // impl Iterator for SearchState {
