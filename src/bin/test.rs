@@ -131,6 +131,11 @@ pub mod bottom_up {
     IntList(Vec<i32>),
     IntToInt(fn(&i32) -> i32)
   }
+  pub enum DisplayExpr {
+    // just a class for printing out expressions
+    Leaf(String),
+    Node(String,Vec<DisplayExpr>)
+  }
   #[derive(Default)]
   pub struct SearchState {
     // holds the current state of the search
@@ -172,6 +177,27 @@ pub mod bottom_up {
           Type::IntList => &self.found_vecs[1],
           Type::IntToInt => &self.found_vecs[2],
         }
+    }
+    pub fn expr_of_found(&self, found: &Found) -> DisplayExpr {
+      let args:Vec<Id> = found.args.iter()
+        .filter_map(|&x|x)
+        .collect();
+      let prod = &self.prods[found.prod];
+      if args.len() == 0 {
+        return DisplayExpr::Leaf(prod.name.clone());
+      }
+      let found_vecs: Vec<&Vec<Found>> = prod.args.iter()
+        .filter_map(|&x|x)
+        .map(|ty|self.possible_values(ty))
+        .collect();
+      assert_eq!(found_vecs.len(),args.len());
+      let args: Vec<DisplayExpr> = args.iter()
+        .zip(found_vecs)
+        .map(|(&id,found_vec)| &found_vec[id])
+        .map(|found| self.expr_of_found(&found))
+        .collect();
+      
+      return DisplayExpr::Node(prod.name.clone(),args)
     }
 
     pub fn check_limit(&self, prod:&Prod, args: &[&Found]) -> bool {
