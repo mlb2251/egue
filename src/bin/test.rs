@@ -22,17 +22,12 @@ fn main() {
   // func(&x);
   //test();
   //repl();
-}
-struct Foo;
-
-fn foo(x: &mut Foo) {
-  bar(&x)
-}
-fn bar(x: &Foo) {
-
+  use bottom_up::Val::*;
+  let env = vec![Int(3),IntList(vec![1,2,3,4,5])];
+  run_bottom_up(env);
 }
 
-
+#[allow(dead_code)]
 fn test(){
   use crate::simple::*;
   let x = Expr::Binop(Box::new(Expr::Lit(Lit::Float(1.))),BOp::Add,Box::new(Expr::Lit(Lit::Float(2.))));
@@ -47,6 +42,7 @@ fn test(){
 }
 
 
+#[allow(dead_code)]
 fn repl() {
   use crate::simple::*;
   let mut rl = rustyline::Editor::<()>::new();
@@ -87,36 +83,37 @@ fn repl() {
 //   bottom_up::Val::IntList(xs.iter().map(|x|f(x)).collect())
 // }
 
-fn run_bottom_up(env:&Vec<bottom_up::Val>) {
+fn run_bottom_up(env:Vec<bottom_up::Val>) {
   // $0 is env[0], $1 is env[1], etc
   use bottom_up::*;
 
   let prods = {
     use bottom_up::dsl_funcs::*;
+    use bottom_up::ReturnType::*;
     use bottom_up::Type::*;
     vec![
-      Prod::new("map",    IntList,    &[IntToInt,IntList],      map),
-      Prod::new("add1",   IntToInt,   &[],                      make_add1),
-      Prod::new("mul2",   IntToInt,   &[],                      make_mul2),
-      Prod::new("$0",     Index(0),   &[],                      idx_0),
-      Prod::new("$1",     Index(1),   &[],                      idx_1),
+      Prod::new("map",    IntList.into(),       &[IntToInt,IntList],      map),
+      Prod::new("add1",   IntToInt.into(),      &[],                      make_add1),
+      Prod::new("mul2",   IntToInt.into(),      &[],                      make_mul2),
+      Prod::new("$0",     Index(0),             &[],                      idx_0),
+      Prod::new("$1",     Index(1),             &[],                      idx_1),
     ]
   };
 
-  let mut search_state = SearchState::new(prods);
+  let mut search_state = SearchState::new(prods, env);
 
-  let max_weight = 10;
-  // synth loop
+  search_state.run(10)
 
 }
 
 pub mod bottom_up {
 
   pub type Result = std::result::Result<Val,Error>;
-  pub type DSLFunc = fn(&[Val], &[Val]) -> Result;
+  pub type DSLFunc = fn(&[&Val], &[Val]) -> Result;
   pub type Id = usize;
   #[derive(Debug, Copy, Clone)]
-  pub enum Type {Int, IntList, IntToInt, Index(usize)}
+  pub enum Type {Int, IntList, IntToInt}
+  pub enum ReturnType {Concrete(Type), Index(usize)}
   pub enum Error {
     Runtime,
     TypeError,
@@ -136,77 +133,40 @@ pub mod bottom_up {
     pub prods: Vec<Prod>, // production rules
     pub seen: std::collections::HashSet::<Val>, // set of values seen so far
     pub found_vecs: [Vec<Found>; 3],
+    pub env: Vec<Val>,
     target_weight: usize,
   }
   pub struct Prod {
     // a production rule
     pub name: String,
-    pub ty: Type,
+    pub ty: ReturnType,
     pub args: [Option<Type>;3],
     pub weight: usize,
     pub func: DSLFunc,
+    pub id: Option<Id>,
   }
   #[derive(Debug)]
-  pub struct Found{
+  pub struct Found {
     // a constructed expression we found
     pub prod: Id,
     pub args: [Option<Id>;3],
     pub weight: usize,
     pub val: Val,
+    pub id: Option<Id>,
   }
 
-  //  struct ProdIter<'a> {
-  //    prod: &'a Prod,
-  //    search_state: &'a SearchState,
-  //    remapped_found_vecs: [&'a Vec<Found>; 3], // remapped so that the first one is for the first type etc
-  //    weight: usize,
-  //    indices: [usize; 3],
-  //    curr_idx: u8, // either 0 1 or 2 corresponding to the 3 possible indices
-  //    finished: bool,
-  //  }
-  
-  //  impl<'a> ProdIter<'a> {
-  //    pub fn new(prod: &'a Prod, search_state: &'a SearchState) -> ProdIter<'a> {
-  //      ProdIter {prod, search_state, weight:search_state.target_weight, indices:[0,0,0]}
-  //    }
-  //  }
-  // impl<'a> Iterator for ProdIter<'a> {
-  //   type Item = [Option<&'a Found>;3];
-  //   fn next(&mut self) -> Option<Self::Item> {
-  //     if self.finished {return None;}
-  //     /// ok lets grab the next valid set of 3 items
-  //     /// starting by looking at the one we're inspecting now
-  //     let [i,j,k] = self.indices;
-  //     let [vi,vj,vk] = self.remapped_found_vecs;
-  //     loop {
-  //       let weight = vi[i].weight + vj[j].weight + vk[k].weight;
-  //       if weight > self.weight {
-  //         // we exceeded our weight, need to reset an index
-  //         // to be precise, we need to move our current index back to zero, step back a single index, and increment it by one
-  //         /// 
-  //         if curr_idx == 0 {
-  //           i = 0
-  //         }
-  //       }
-
-  //     }
-
-
-  //     self.remapped_found_vecs[0].get(self.indices[0]);
-  //     ()
-  //   }
-  // }
-
   impl SearchState {
-    pub fn new(prods: Vec<Prod>) -> SearchState {
-      SearchState {prods, ..Default::default()}
+    pub fn new(mut prods: Vec<Prod>, env: Vec<Val>) -> SearchState {
+      for (i,prod) in prods.iter_mut().enumerate() {
+        prod.id = Some(i);
+      }
+      SearchState {prods, env, ..Default::default()}
     }
     fn possible_values(&self, arg: Type) -> &Vec<Found> {
         match arg {
           Type::Int => &self.found_vecs[0],
           Type::IntList => &self.found_vecs[1],
           Type::IntToInt => &self.found_vecs[2],
-          _ => panic!("unexpected type ahhh"),
         }
     }
 
@@ -215,10 +175,39 @@ pub mod bottom_up {
       return weight <=self.target_weight;
     }
     pub fn try_add(&self, prod:&Prod, args: &[&Found]) -> Option<Found>{
+      // check that weight is inbounds
       let weight = prod.weight + args.iter().map(|found| found.weight).sum::<usize>();
-       if weight != self.target_weight { return None }
-        //TODOTODOTODO
-        panic!("ACTUALLY GO AND IMPLEMEMNT THE ADDITION HERE!!!");
+      if weight != self.target_weight { return None }
+      // map Found to Val so they can be fed in
+      let arg_vals : Vec<&Val> = args.iter().map(|found| &found.val).collect();
+      // run the DSLFunc
+      let res = (prod.func)(&arg_vals[..], &self.env[..]);
+      let val = match res {
+        Err(Error::TypeError) => panic!("we shouldnt never encouter type errors"),
+        Err(_) => panic!("havent handled whatever this is"),
+        Ok(val) => val,
+      };
+      //observational equivalence
+      if self.seen.contains(&val) { return None }
+
+      let mut arg_ids = [None;3];
+      let id_vec: Vec<Id> = args.iter().map(|found| found.id).map(|x|x.unwrap()).collect();
+      for (i,id) in id_vec.into_iter().enumerate() {
+        arg_ids[i] = Some(id);
+      }
+
+      Some(Found {prod: prod.id.unwrap(), 
+             args: arg_ids,
+             weight: weight,
+             val: val,
+             id: None })
+    }
+
+    pub fn run(&mut self, weight: usize) {
+      if weight <= self.target_weight { return }
+      for _ in weight..self.target_weight {
+        self.step();
+      }
     }
 
     pub fn step(&mut self) {
@@ -228,20 +217,6 @@ pub mod bottom_up {
       let mut to_add = Vec::<Found>::new();
 
       for prod in self.prods.iter() {
-        //let [arg1,arg2,arg3] = prod.args;
-        // let x:Vec<_> = prod.args
-        //   .iter()
-        //   .filter(|x|x.is_some())
-        //   .map(|x|x.unwrap()) // probably a better way to do this
-        //   .map(|ty|self.possible_values(ty))
-        //   .collect();
-        
-        // let it = ProdIter::new(&prod,&self);
-        // for args in it {
-        //   let [a0,a1,a2] = args;
-          
-        //   prod.func()
-        // }
         let args:Vec<_> = prod.args.iter().filter(|x|x.is_some()).map(|&ty|self.possible_values(ty.unwrap())).collect();
 
         // I know this is terrifying code but let me explain
@@ -291,84 +266,38 @@ pub mod bottom_up {
           },
           _ => panic!("didnt expect >3 args")
         }
-
-
-
-
-
-        // for arg0 in args[0].iter() {
-        //   for arg1 in args[1].iter() {
-        //     if arg0.weight + arg1.weight + prod.weight > self.target_weight {break;}
-        //     for arg2 in args[2].iter() {
-        //       let weight = arg0.weight + arg1.weight + arg2.weight + prod.weight;
-        //       if weight > self.target_weight {break;}
-        //       // TODO hmm so is this enough? do we only ever actually increment the innermost one before stepping and all
-        //       // TODO skips are really just skips on the innermost iterator?
-
-        //       // TODO watch out for cases with only two args? one arg? I suppose the third arg could be a sentinel value as 
-        //       // TODO long as it points to a length-1 vector? Yeah just add a dummy vec that possible_values points to
-        //       // This is actually quite a good call. Make it a Found thing with zero weight
-        //       // hmm tho also it seems weird to use a sentinel since the value itself doesn't have any meaning
-        //       // TODO ACK idk. Stop and think before you do anything, whatever you do
-        //     }
-        //   }
-        // }
-        
-        
-        // if let Some(ty) = prod.args[0] {
-        //   let arg0 = self.possible_values(ty);
-        //   if let Some(ty) = prod.args[1] {
-        //     let arg1 = self.possible_values(ty);
-        //     if let Some(ty) = prod.args[2] {
-        //       let arg2 = self.possible_values(ty);
-
-
-
-        //       let res = prod.func(&[]);
-              
-        //     }
-        //   }
-        // }
-
       }
 
 
       // update with newly found values
-      for found in to_add.into_iter(){
-        match found.val.ty() {
-          Type::Int => self.found_vecs[0].push(found),
-          Type::IntList => self.found_vecs[1].push(found),
-          Type::IntToInt => self.found_vecs[2].push(found),
-          Type::Index(i) => panic!("havent handled Index lookup yet"),
-        }
+      for mut found in to_add.into_iter(){
+        let v = match found.val.ty() {
+          Type::Int => &mut self.found_vecs[0],
+          Type::IntList => &mut self.found_vecs[1],
+          Type::IntToInt => &mut self.found_vecs[2],
+        };
+        found.id = Some(v.len()); // set the id of Found
+        self.seen.insert(found.val.clone()); // mark Found.val as seen
+        v.push(found);
       }
-
-
-
     }
   }
-  // impl Iterator for SearchState {
-  //   type Item = ;
-  //   fn next(&mut self) -> Option<Self::Item> {
-
-  //   }
-  // }
 
   pub mod dsl_funcs {
     use super::*;
     use super::Val::*;
     use super::Error::*;
-    pub fn map(args: &[Val], _env: &[Val]) -> Result {
+    pub fn map(args: &[&Val], _env: &[Val]) -> Result {
       if let [IntToInt(f),IntList(xs)] = args {
         Ok(IntList(xs.iter().map(|x|f(x)).collect()))
       } else { Err(TypeError) }
     }
-    pub fn make_add1(args: &[Val], _env: &[Val]) -> Result{
+    pub fn make_add1(args: &[&Val], _env: &[Val]) -> Result{
       if let [] = args {
         Ok(IntToInt(|x|x+1))
       } else { Err(TypeError) }
     }
-    pub fn idx_0(args: &[Val], env: &[Val]) -> Result{
+    pub fn idx_0(args: &[&Val], env: &[Val]) -> Result{
       if let [] = args {
         // explicit clone is needed here. In stuff like map() we construct
         // a new value so you get a Val naturally, but here we just lookup
@@ -376,7 +305,7 @@ pub mod bottom_up {
         env.get(0).ok_or(IndexError).map(|v|v.clone())
       } else { Err(TypeError) }
     }
-    pub fn idx_1(args: &[Val], env: &[Val]) -> Result{
+    pub fn idx_1(args: &[&Val], env: &[Val]) -> Result{
       if let [] = args {
         env.get(1).ok_or(IndexError).map(|v|v.clone())
       } else { Err(TypeError) }
@@ -390,7 +319,7 @@ pub mod bottom_up {
     //   };
     //   f
     // }
-    pub fn make_mul2(args: &[Val], _env:&[Val]) -> Result{
+    pub fn make_mul2(args: &[&Val], _env:&[Val]) -> Result{
       if let [] = args {
         Ok(IntToInt(|x|x*2))
       } else { Err(TypeError) }
@@ -464,17 +393,23 @@ pub mod bottom_up {
   }
 
 
-  impl Prod
-  { 
-    pub fn new(name:&str, ty: Type, args_slice: &[Type], func: DSLFunc) -> Prod {
+  impl Prod { 
+    pub fn new(name:&str, ty: ReturnType, args_slice: &[Type], func: DSLFunc) -> Prod {
       if args_slice.len() > 3 {panic!("Too many args")};
       let mut args = [None;3];
       for (i,ty) in args_slice.iter().enumerate() {
         args[i] = Some(*ty);
       }
-      Prod {name:String::from(name), ty, args, func, weight:1}
+      Prod {name:String::from(name), ty, args, func, weight:1, id:None}
     }
   }
+
+  impl From<Type> for ReturnType {
+    fn from(t: Type) -> ReturnType {
+      ReturnType::Concrete(t)
+    }
+  }
+
 
 }
 
