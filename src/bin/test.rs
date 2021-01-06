@@ -22,6 +22,7 @@ fn main() {
   // func(&x);
   //test();
   //repl();
+  println!("Starting up");
   use bottom_up::Val::*;
   let env = vec![Int(3),IntList(vec![1,2,3,4,5])];
   run_bottom_up(env);
@@ -87,6 +88,7 @@ fn run_bottom_up(env:Vec<bottom_up::Val>) {
   // $0 is env[0], $1 is env[1], etc
   use bottom_up::*;
 
+  println!("building productions");
   let prods = {
     use bottom_up::dsl_funcs::*;
     use bottom_up::ReturnType::*;
@@ -100,9 +102,11 @@ fn run_bottom_up(env:Vec<bottom_up::Val>) {
     ]
   };
 
+  println!("building search state");
   let mut search_state = SearchState::new(prods, env);
 
-  search_state.run(10)
+  println!("running");
+  search_state.run(10);
 
 }
 
@@ -189,6 +193,7 @@ pub mod bottom_up {
       };
       //observational equivalence
       if self.seen.contains(&val) { return None }
+      println!("discovered new val: {:?}", val);
 
       let mut arg_ids = [None;3];
       let id_vec: Vec<Id> = args.iter().map(|found| found.id).map(|x|x.unwrap()).collect();
@@ -204,10 +209,14 @@ pub mod bottom_up {
     }
 
     pub fn run(&mut self, weight: usize) {
+      println!("run()");
       if weight <= self.target_weight { return }
-      for _ in weight..self.target_weight {
+      println!("passed weight check");
+      for _ in self.target_weight..weight {
         self.step();
+        println!("{:?}",self);
       }
+      println!("done");
     }
 
     pub fn step(&mut self) {
@@ -280,6 +289,19 @@ pub mod bottom_up {
         self.seen.insert(found.val.clone()); // mark Found.val as seen
         v.push(found);
       }
+    }
+  }
+  impl std::fmt::Debug for SearchState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+      f.debug_struct("SearchState")
+       .field("prods",&self.prods.len())
+       .field("seen",&self.seen.len())
+       .field("found_ints",&self.found_vecs[0].len())
+       .field("found_intlists",&self.found_vecs[1].len())
+       .field("found_inttoints",&self.found_vecs[2].len())
+       .field("env",&self.env.len())
+       .field("target_weight",&self.target_weight)
+       .finish()
     }
   }
 
