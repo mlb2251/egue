@@ -94,11 +94,11 @@ fn run_bottom_up(env:Vec<bottom_up::Val>) {
     use bottom_up::ReturnType::*;
     use bottom_up::Type::*;
     vec![
+      Prod::new("$0",     Index(0),             &[],                      idx_0),
+      Prod::new("$1",     Index(1),             &[],                      idx_1),
       Prod::new("map",    IntList.into(),       &[IntToInt,IntList],      map),
       Prod::new("add1",   IntToInt.into(),      &[],                      make_add1),
       Prod::new("mul2",   IntToInt.into(),      &[],                      make_mul2),
-      Prod::new("$0",     Index(0),             &[],                      idx_0),
-      Prod::new("$1",     Index(1),             &[],                      idx_1),
     ]
   };
 
