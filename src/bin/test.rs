@@ -219,7 +219,6 @@ pub mod bottom_up {
       };
       //observational equivalence
       if self.seen.contains(&val) { return None }
-      println!("discovered new val: {:?}", val);
 
       let mut arg_ids = [None;3];
       let id_vec: Vec<Id> = args.iter().map(|found| found.id).map(|x|x.unwrap()).collect();
@@ -237,17 +236,21 @@ pub mod bottom_up {
     pub fn run(&mut self, weight: usize) {
       println!("run()");
       if weight <= self.target_weight { return }
-      println!("passed weight check");
       for _ in self.target_weight..weight {
         self.step();
-        println!("{:?}",self);
       }
+      // self.print_results();
       println!("done");
     }
 
+    // pub fn print_results(&self) {
+      
+    // }
+
     pub fn step(&mut self) {
       self.target_weight += 1;
-      println!("Searching for weight={} expressions",self.target_weight);
+      println!("*** {:?}",self);
+      println!("===Weight {}===",self.target_weight);
 
       let mut to_add = Vec::<Found>::new();
 
@@ -306,6 +309,7 @@ pub mod bottom_up {
 
       // update with newly found values
       for mut found in to_add.into_iter(){
+        println!("{:?} -> {:?} ", self.expr_of_found(&found), found.val);
         let v = match found.val.ty() {
           Type::Int => &mut self.found_vecs[0],
           Type::IntList => &mut self.found_vecs[1],
@@ -434,7 +438,7 @@ pub mod bottom_up {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
       match self {
         Val::Int(x)  => write!(f,"Int({})",x),
-        Val::IntList(x)  => write!(f,"Int({:?})",x),
+        Val::IntList(x)  => write!(f,"IntList({:?})",x),
         Val::IntToInt(_)  => write!(f,"IntToInt(cant_display)"),
       }
     }
@@ -455,6 +459,18 @@ pub mod bottom_up {
   impl From<Type> for ReturnType {
     fn from(t: Type) -> ReturnType {
       ReturnType::Concrete(t)
+    }
+  }
+
+  impl std::fmt::Debug for DisplayExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+      match self {
+        Self::Leaf(s) => write!(f,"{}",s),
+        Self::Node(s,v) => {
+          let args: Vec<String>  = v.iter().map(|e|format!("{:?}",e)).collect();
+          write!(f,"({} {})", s, args.join(" "))
+        }
+      }
     }
   }
 
