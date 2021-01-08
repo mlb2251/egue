@@ -8,7 +8,8 @@ fn deepcoder_test() {
   let prods = bottom_up::deepcoder::get_prods();
   let observational_equiv = false;
   let quiet = true;
-  let mut search_state = SearchState::new(prods, env, observational_equiv, quiet);
+  let target = None;
+  let mut search_state = SearchState::new(prods, env, observational_equiv, quiet, target);
   search_state.run(4);
   assert_eq!(search_state.prods.len(),36);
   assert_eq!(search_state.seen.len(),0);
@@ -23,7 +24,8 @@ fn deepcoder_obs_equiv() {
   let prods = bottom_up::deepcoder::get_prods();
   let observational_equiv = true;
   let quiet = true;
-  let mut search_state = SearchState::new(prods, env, observational_equiv, quiet);
+  let target = None;
+  let mut search_state = SearchState::new(prods, env, observational_equiv, quiet, target);
   search_state.run(4);
   assert_eq!(search_state.prods.len(),36);
   assert_eq!(search_state.seen.len(),88);

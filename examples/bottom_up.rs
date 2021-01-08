@@ -11,7 +11,7 @@ fn main() {
     .args_from_usage(
       "
       -w --weight [int]             'max weight to run bottom up till'
-      --quiet                       'hush hush'
+      -q --quiet                       'hush hush'
       --no-equiv                    'turns off observational equivalence checks'
       "
     ).get_matches();
@@ -28,7 +28,8 @@ fn main() {
   println!("building search state");
   let observational_equiv = !cfg.is_present("no-equiv");
   let quiet = cfg.is_present("quiet");
-  let mut search_state = SearchState::new(prods, env, observational_equiv, quiet);
+  let target = None;
+  let mut search_state = SearchState::new(prods, env, observational_equiv, quiet, target);
 
   println!("running");
   let tstart = Instant::now();

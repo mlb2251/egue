@@ -10,14 +10,15 @@ pub struct SearchState {
   target_weight: usize,
   pub observational_equiv: bool,
   pub quiet: bool,
+  pub target: Option<Val>,
 }
 
 impl SearchState {
-  pub fn new(mut prods: Vec<Prod>, env: Vec<Val>, observational_equiv: bool, quiet: bool) -> SearchState {
+  pub fn new(mut prods: Vec<Prod>, env: Vec<Val>, observational_equiv: bool, quiet: bool, target: Option<Val>) -> SearchState {
     for (i,prod) in prods.iter_mut().enumerate() {
       prod.id = Some(i);
     }
-    SearchState {prods, env, observational_equiv, quiet, ..Default::default()}
+    SearchState {prods, env, observational_equiv, quiet, target, ..Default::default()}
   }
   fn possible_values(&self, arg: Type) -> &Vec<Found> {
       match arg {
@@ -68,7 +69,7 @@ impl SearchState {
       //Err(_) => panic!("havent handled whatever this is"),
       Ok(val) => val,
     };
-    //observational equivalence
+    // observational equivalence
     if self.observational_equiv{
       if self.seen.contains(&val) { return None }
     }
@@ -117,6 +118,13 @@ impl SearchState {
       // if you wanted you could write some bits as closures (tho also macros would be nice?):
         //let check = |args| {self.check_limit(prod,args)};
         //let insert = |args| {self.try_add(prod,args).map(|x|to_add.push(x));};
+
+    // // check if found solution
+    // if let Some(target_val) = &self.target {
+    //   if *target_val == val {
+    //     self.
+    //   }
+    // }
 
       match args.len() {
         0 => {self.try_add(prod,&[]).map(|x|to_add.push(x));},
