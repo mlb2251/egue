@@ -11,6 +11,7 @@ egg = "0.6.0"
 symbolic_expressions = "5.0.3"
 rustyline = "7.1.0"
 colored = "2.0.0"
+clap = "2.33.3"
 
 [dev-dependencies]
 criterion = "0.3.3"

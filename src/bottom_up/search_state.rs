@@ -98,7 +98,6 @@ impl SearchState {
 
   pub fn step(&mut self) {
     self.target_weight += 1;
-    println!("*** {:?}",self);
     println!("===Weight {}===",self.target_weight);
 
     let mut to_add = Vec::<Found>::new();
@@ -158,6 +157,12 @@ impl SearchState {
 
     // update with newly found values
     for mut found in to_add.into_iter(){
+      if self.observational_equiv{
+        // this doublecheck is necessary in case the value was added previously on
+        // this same to_add run.
+        if self.seen.contains(&found.val) { continue }
+        self.seen.insert(found.val.clone()); // mark Found.val as seen
+      }
       if !self.quiet {
         println!("{:?} -> {:?} ", self.expr_of_found(&found), found.val);
       }
@@ -169,11 +174,10 @@ impl SearchState {
         Type::IntToBool => &mut self.found_vecs[4],
       };
       found.id = Some(v.len()); // set the id of Found
-      if self.observational_equiv{
-        self.seen.insert(found.val.clone()); // mark Found.val as seen
-      }
       v.push(found);
     }
+
+    println!("*** {:?}",self);
   }
 }
 impl std::fmt::Debug for SearchState {
