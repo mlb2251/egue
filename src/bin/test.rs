@@ -1,4 +1,6 @@
 use colored::*;
+use std::time::{Duration, Instant};
+
 //use std::convert::TryInto;
 
 
@@ -26,6 +28,7 @@ fn main() {
   println!("Starting up");
   use bottom_up::Val::*;
   let env = vec![Int(3),IntList(vec![1,2,3,4,5])];
+
   run_bottom_up(env);
 }
 
@@ -142,11 +145,14 @@ fn run_bottom_up(env:Vec<bottom_up::Val>) {
 
   println!("building search state");
   let observational_equiv = false;
-  let quiet = false;
+  let quiet = true;
   let mut search_state = SearchState::new(prods, env, observational_equiv, quiet);
 
   println!("running");
+  let tstart = Instant::now();
   search_state.run(7);
+  let elapsed = tstart.elapsed().as_secs_f32();
+  println!("{:.2}", elapsed);
 
 }
 
