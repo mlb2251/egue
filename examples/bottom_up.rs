@@ -13,8 +13,8 @@ fn main() {
   let prods = bottom_up::deepcoder::get_prods();
 
   println!("building search state");
-  let observational_equiv = false;
-  let quiet = true;
+  let observational_equiv = true;
+  let quiet = false;
   let mut search_state = SearchState::new(prods, env, observational_equiv, quiet);
 
   println!("running");
