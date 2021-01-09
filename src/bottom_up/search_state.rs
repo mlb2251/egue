@@ -103,7 +103,7 @@ impl SearchState {
 
     let mut to_add = Vec::<Found>::new();
 
-    for prod in self.prods.iter() {
+    'outer: for prod in self.prods.iter() {
       let args:Vec<_> = prod.args.iter().filter(|x|x.is_some()).map(|&ty|self.possible_values(ty.unwrap())).collect();
 
       // I know this is terrifying code but let me explain
@@ -117,22 +117,28 @@ impl SearchState {
 
       // if you wanted you could write some bits as closures (tho also macros would be nice?):
       let check = |argslice: &[&Found]| {self.check_limit(prod,argslice)};
-      let mut insert = |argslice: &[&Found]| {self.try_add(prod,argslice).map(|x|to_add.push(x));};
+      let mut insert = |argslice: &[&Found]| {
+        if let Some(v) = self.try_add(prod,argslice) {
+          // check if found solution
+          if let Some(target_val) = &self.target {
+            if *target_val == v.val {
+              to_add.push(v);
+              return true; //means we found the answer
+            }
+          }
+          to_add.push(v);
+        };
+        return false;
+      };
 
-    // // check if found solution
-    // if let Some(target_val) = &self.target {
-    //   if *target_val == val {
-    //     self.
-    //   }
-    // }
 
       match args.len() {
-        0 => {insert(&[])},
+        0 => {if insert(&[]) {break 'outer};},
 
         1 => {
           for arg0 in args[0].iter() {
             if !check(&[arg0]){break}
-            insert(&[arg0]);
+            if insert(&[arg0]) {break 'outer};
           }
         },
 
@@ -141,7 +147,7 @@ impl SearchState {
               if !check(&[arg0]) {break}
               for arg1 in args[1].iter() {
                 if !check(&[arg0,arg1]) {break}
-                insert(&[arg0,arg1]);
+                if insert(&[arg0,arg1]){break 'outer};
               }
           }
         },
@@ -152,7 +158,7 @@ impl SearchState {
                 if !check(&[arg0,arg1]) {break}
                 for arg2 in args[2].iter() {
                   if !check(&[arg0,arg1,arg2]) {break}
-                  insert(&[arg0,arg1,arg2]);
+                  if insert(&[arg0,arg1,arg2]){break 'outer};
                 }
               }
           }
