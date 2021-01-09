@@ -116,8 +116,8 @@ impl SearchState {
       // TLDR: Just move the hell on and go work on something else now that this works
 
       // if you wanted you could write some bits as closures (tho also macros would be nice?):
-      // let check = |xargs: &[&Found]| {self.check_limit(prod,xargs)};
-        //let insert = |args| {self.try_add(prod,args).map(|x|to_add.push(x));};
+      let check = |argslice: &[&Found]| {self.check_limit(prod,argslice)};
+      let mut insert = |argslice: &[&Found]| {self.try_add(prod,argslice).map(|x|to_add.push(x));};
 
     // // check if found solution
     // if let Some(target_val) = &self.target {
@@ -127,32 +127,32 @@ impl SearchState {
     // }
 
       match args.len() {
-        0 => {self.try_add(prod,&[]).map(|x|to_add.push(x));},
+        0 => {insert(&[])},
 
         1 => {
           for arg0 in args[0].iter() {
-            if !self.check_limit(prod,&[arg0]) {break}
-            self.try_add(prod,&[arg0]).map(|x|to_add.push(x));
+            if !check(&[arg0]){break}
+            insert(&[arg0]);
           }
         },
 
         2 => {
           for arg0 in args[0].iter() {
-              if !self.check_limit(prod,&[arg0]) {break}
+              if !check(&[arg0]) {break}
               for arg1 in args[1].iter() {
-                if !self.check_limit(prod,&[arg0,arg1]) {break}
-                self.try_add(prod,&[arg0,arg1]).map(|x|to_add.push(x));
+                if !check(&[arg0,arg1]) {break}
+                insert(&[arg0,arg1]);
               }
           }
         },
         3 => {
           for arg0 in args[0].iter() {
-              if !self.check_limit(prod,&[arg0]) {break}
+              if !check(&[arg0]) {break}
               for arg1 in args[1].iter() {
-                if !self.check_limit(prod,&[arg0,arg1]) {break}
+                if !check(&[arg0,arg1]) {break}
                 for arg2 in args[2].iter() {
-                  if !self.check_limit(prod,&[arg0,arg1,arg2]) {break}
-                  self.try_add(prod,&[arg0,arg1,arg2]).map(|x|to_add.push(x));
+                  if !check(&[arg0,arg1,arg2]) {break}
+                  insert(&[arg0,arg1,arg2]);
                 }
               }
           }
