@@ -14,7 +14,7 @@ fn deepcoder_test() {
   assert_eq!(search_state.prods.len(),36);
   assert_eq!(search_state.seen.len(),0);
   assert_eq!(search_state.found_vecs[0].len(),154);
-  assert_eq!(search_state.found_vecs[1].len(),130);
+  assert_eq!(search_state.found_vecs[1].len(),135);
   assert_eq!(search_state.found_vecs[2].len(),10);
 }
 
@@ -28,9 +28,9 @@ fn deepcoder_obs_equiv() {
   let mut search_state = SearchState::new(prods, env, observational_equiv, quiet, target);
   search_state.run(4);
   assert_eq!(search_state.prods.len(),36);
-  assert_eq!(search_state.seen.len(),88);
+  assert_eq!(search_state.seen.len(),89);
   assert_eq!(search_state.found_vecs[0].len(),23);
-  assert_eq!(search_state.found_vecs[1].len(),46);
+  assert_eq!(search_state.found_vecs[1].len(),47);
   assert_eq!(search_state.found_vecs[2].len(),10);
 }
 
