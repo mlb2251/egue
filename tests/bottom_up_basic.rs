@@ -28,8 +28,8 @@ fn deepcoder_obs_equiv() {
   let mut search_state = SearchState::new(prods, env, observational_equiv, quiet, target);
   search_state.run(4);
   assert_eq!(search_state.prods.len(),36);
-  assert_eq!(search_state.seen.len(),89);
-  assert_eq!(search_state.found_vecs[0].len(),23);
+  assert_eq!(search_state.seen.len(),90);
+  assert_eq!(search_state.found_vecs[0].len(),24);
   assert_eq!(search_state.found_vecs[1].len(),47);
   assert_eq!(search_state.found_vecs[2].len(),10);
 }
@@ -40,9 +40,11 @@ fn deepcoder_obs_equiv_search() {
   let prods = bottom_up::deepcoder::get_prods();
   let observational_equiv = true;
   let quiet = true;
-  let target = Some(Val::IntList(vec![48, 62, 78]));
+  //use example: (scanl1 (+) (reverse (scanl1 (*) $1))) -> IntList([120, 144, 150, 152, 153])
+  // yes i checked manually and that's the right answer
+  let target = Some(Val::IntList(vec![120, 144, 150, 152, 153]));
   let mut search_state = SearchState::new(prods, env, observational_equiv, quiet, target);
-  let res = search_state.run(11);
+  let res = search_state.run(6);
   assert!(res.is_some());
-  //assert!(format!("{:?}",search_state.expr_of_found(&res.unwrap())).trim() == "(zipwith (-) (map (**2) (scanl1 (+) (scanl1 (+) $1))) $1)")
+  assert!(format!("{:?}",search_state.expr_of_found(&res.unwrap())).trim() == "(scanl1 (+) (reverse (scanl1 (*) $1)))")
 }
