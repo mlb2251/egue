@@ -6,6 +6,7 @@ pub use val::Val;
 pub use search_state::SearchState;
 
 pub type Result = std::result::Result<Val,Error>;
+pub type LambdaResult<T> = std::result::Result<T,Error>;
 pub type DSLFunc = fn(&[&Val], &[Val]) -> Result;
 pub type Id = usize;
 #[derive(Debug, Copy, Clone)]

@@ -126,13 +126,16 @@ pub fn sort(args: &[&Val], _env: &[Val]) -> Result {
 }
 pub fn sum(args: &[&Val], _env: &[Val]) -> Result {
   if let [IntList(xs)] = args {
-    Ok(Int(xs.iter().sum::<i32>()))
+    // Iterator::sum() can overflow (panic during debug, silent during release)
+    //Ok(Int(xs.iter().sum::<i32>()))
+    xs.iter().try_fold(0i32,|acc,next|acc.checked_add(*next).ok_or(RuntimeError)).map(|ys|Int(ys))
   } else { Err(TypeError) }
 }
 
 pub fn map(args: &[&Val], _env: &[Val]) -> Result {
   if let [IntToInt(f),IntList(xs)] = args {
-    Ok(IntList(xs.iter().map(|x|f(x)).collect()))
+    xs.iter().map(|x|f(x)).collect::<LambdaResult<_>>().map(|v|IntList(v))
+    //Ok(IntList(xs.iter().map(|x|f(x)).collect()))
   } else { Err(TypeError) }
 }
 pub fn filter(args: &[&Val], _env: &[Val]) -> Result {
@@ -148,66 +151,81 @@ pub fn count(args: &[&Val], _env: &[Val]) -> Result {
 }
 pub fn zipwith(args: &[&Val], _env: &[Val]) -> Result {
   if let [IntToIntToInt(f),IntList(xs),IntList(ys)] = args {
-    Ok(IntList(xs.iter().zip(ys.iter()).map(|(x,y)|f(x,y)).collect()))
+    xs.iter().zip(ys.iter()).map(|(x,y)|f(x,y)).collect::<LambdaResult<_>>().map(|v|IntList(v))
+    //Ok(IntList(xs.iter().zip(ys.iter()).map(|(x,y)|f(x,y)).collect()))
   } else { Err(TypeError) }
 }
 pub fn scanl1(args: &[&Val], _env: &[Val]) -> Result {
   if let [IntToIntToInt(f),IntList(xs)] = args {
     // if input is empty list, return empty list
     if xs.len() == 0 {return Ok(IntList(xs.clone()))}
+    //let init = Ok(xs.first().unwrap().clone()); //ok to unwrap bc already checked for empty list
+    //Ok(IntList(xs.iter().skip(1).scan(init,|x,y|Some(f(x,y))).collect()))
     let init = xs.first().unwrap().clone(); //ok to unwrap bc already checked for empty list
-    Ok(IntList(xs.iter().skip(1).scan(init,|x,y|Some(f(x,y))).collect()))
+
+    // xs.iter().skip(1).try_fold(init,|acc,next| f(acc,next))
+    let mut ys = vec![init];
+
+    for x in xs.iter().skip(1) {
+      ys.push(f(ys.last().unwrap(),x)?);
+    }
+    Ok(IntList(ys))
+    // let scan_fn = |acc:LambdaResult<_>,next| {
+    //   acc.and_then(|acc_|f(&acc_,&next))
+    // };
+    // //xs.iter().skip(1).scan(init,|x,y|Some(f(x,y))).collect()
+    // xs.iter().skip(1).scan(init,scan_fn).collect::<LambdaResult<_>>().map(|v|IntList(v))
   } else { Err(TypeError) }
 }
 
 pub fn make_add1(args: &[&Val], _env: &[Val]) -> Result{
   if let [] = args {
-    Ok(IntToInt(|x|x+1))
+    Ok(IntToInt(|x|x.checked_add(1).ok_or(RuntimeError)))
   } else { Err(TypeError) }
 }
 pub fn make_sub1(args: &[&Val], _env: &[Val]) -> Result{
   if let [] = args {
-    Ok(IntToInt(|x|x-1))
+    Ok(IntToInt(|x|x.checked_sub(1).ok_or(RuntimeError)))
   } else { Err(TypeError) }
 }
 pub fn make_mul2(args: &[&Val], _env:&[Val]) -> Result{
   if let [] = args {
-    Ok(IntToInt(|x|x*2))
+    Ok(IntToInt(|x|x.checked_mul(2).ok_or(RuntimeError)))
   } else { Err(TypeError) }
 }
 pub fn make_div2(args: &[&Val], _env:&[Val]) -> Result{
   if let [] = args {
-    Ok(IntToInt(|x|x/2)) // integer division
+    Ok(IntToInt(|x|x.checked_div(2).ok_or(RuntimeError))) // integer division
   } else { Err(TypeError) }
 }
 pub fn make_negate(args: &[&Val], _env:&[Val]) -> Result{
   if let [] = args {
-    Ok(IntToInt(|x|x*-1))
+    Ok(IntToInt(|x|x.checked_mul(-1).ok_or(RuntimeError)))
   } else { Err(TypeError) }
 }
 pub fn make_square(args: &[&Val], _env:&[Val]) -> Result{
   if let [] = args {
-    Ok(IntToInt(|x|x*x))
+    Ok(IntToInt(|x|x.checked_mul(*x).ok_or(RuntimeError)))
   } else { Err(TypeError) }
 }
 pub fn make_mul3(args: &[&Val], _env:&[Val]) -> Result{
   if let [] = args {
-    Ok(IntToInt(|x|x*3))
+    Ok(IntToInt(|x|x.checked_mul(3).ok_or(RuntimeError)))
   } else { Err(TypeError) }
 }
 pub fn make_div3(args: &[&Val], _env:&[Val]) -> Result{
   if let [] = args {
-    Ok(IntToInt(|x|x/3))
+    Ok(IntToInt(|x|x.checked_div(3).ok_or(RuntimeError)))
   } else { Err(TypeError) }
 }
 pub fn make_mul4(args: &[&Val], _env:&[Val]) -> Result{
   if let [] = args {
-    Ok(IntToInt(|x|x*4))
+    Ok(IntToInt(|x|x.checked_mul(4).ok_or(RuntimeError)))
   } else { Err(TypeError) }
 }
 pub fn make_div4(args: &[&Val], _env:&[Val]) -> Result{
   if let [] = args {
-    Ok(IntToInt(|x|x/4))
+    Ok(IntToInt(|x|x.checked_div(4).ok_or(RuntimeError)))
   } else { Err(TypeError) }
 }
 
@@ -234,26 +252,26 @@ pub fn make_is_odd(args: &[&Val], _env: &[Val]) -> Result{
 
 pub fn make_add(args: &[&Val], _env: &[Val]) -> Result{
   if let [] = args {
-    Ok(IntToIntToInt(|x,y|x+y))
+    Ok(IntToIntToInt(|x,y|x.checked_add(*y).ok_or(RuntimeError)))
   } else { Err(TypeError) }
 }
 pub fn make_sub(args: &[&Val], _env: &[Val]) -> Result{
   if let [] = args {
-    Ok(IntToIntToInt(|x,y|x-y))
+    Ok(IntToIntToInt(|x,y|x.checked_sub(*y).ok_or(RuntimeError)))
   } else { Err(TypeError) }
 }
 pub fn make_mul(args: &[&Val], _env: &[Val]) -> Result{
   if let [] = args {
-    Ok(IntToIntToInt(|x,y|x*y))
+    Ok(IntToIntToInt(|x,y|x.checked_mul(*y).ok_or(RuntimeError)))
   } else { Err(TypeError) }
 }
 pub fn make_min(args: &[&Val], _env: &[Val]) -> Result{
   if let [] = args {
-    Ok(IntToIntToInt(|&x,&y|std::cmp::min(x,y)))
+    Ok(IntToIntToInt(|&x,&y|Ok(std::cmp::min(x,y))))
   } else { Err(TypeError) }
 }
 pub fn make_max(args: &[&Val], _env: &[Val]) -> Result{
   if let [] = args {
-    Ok(IntToIntToInt(|&x,&y|std::cmp::max(x,y)))
+    Ok(IntToIntToInt(|&x,&y|Ok(std::cmp::max(x,y))))
   } else { Err(TypeError) }
 }

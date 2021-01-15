@@ -5,9 +5,9 @@ pub enum Val {
   // in the DSL
   Int(i32),
   IntList(Vec<i32>),
-  IntToInt(fn(&i32) -> i32),
-  IntToIntToInt(fn(&i32,&i32) -> i32),
-  IntToBool(fn(&i32) -> bool)
+  IntToInt(fn(&i32) -> Result<i32,super::Error>),
+  IntToIntToInt(fn(&i32,&i32) -> Result<i32,super::Error>),
+  IntToBool(fn(&i32) -> bool),
 }
 
 impl Val {
@@ -42,15 +42,15 @@ impl std::hash::Hash for Val {
       Val::Int(v) => v.hash(state),
       Val::IntList(v) => v.hash(state),
       Val::IntToInt(f) => {
-        let ptr : *const fn(&i32) -> i32 = f;
+        let ptr : *const _ = f;
         ptr.hash(state)
       }
       Val::IntToIntToInt(f) => {
-        let ptr : *const fn(&i32,&i32) -> i32 = f;
+        let ptr : *const _ = f;
         ptr.hash(state)
       }
       Val::IntToBool(f) => {
-        let ptr : *const fn(&i32) -> bool = f;
+        let ptr : *const _ = f;
         ptr.hash(state)
       }
     };
@@ -64,18 +64,18 @@ impl std::cmp::PartialEq for Val {
       (Val::Int(v),Val::Int(o)) => v == o,
       (Val::IntList(v),Val::IntList(o)) => v == o,
       (Val::IntToInt(f),Val::IntToInt(o)) => {
-        let ptr : *const fn(&i32) -> i32 = f;
-        let ptr2 : *const fn(&i32) -> i32 = o;
+        let ptr : *const _ = f;
+        let ptr2 : *const _ = o;
         ptr == ptr2
       }
       (Val::IntToIntToInt(f),Val::IntToIntToInt(o)) => {
-        let ptr : *const fn(&i32,&i32) -> i32 = f;
-        let ptr2 : *const fn(&i32,&i32) -> i32 = o;
+        let ptr : *const _ = f;
+        let ptr2 : *const _ = o;
         ptr == ptr2
       }
       (Val::IntToBool(f),Val::IntToBool(o)) => {
-        let ptr : *const fn(&i32) -> bool = f;
-        let ptr2 : *const fn(&i32) -> bool = o;
+        let ptr : *const _ = f;
+        let ptr2 : *const _ = o;
         ptr == ptr2
       }
       _ => false,
