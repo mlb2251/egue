@@ -29,7 +29,7 @@ pub struct Prod {
   pub func: DSLFunc,
   pub id: Option<Id>,
 }
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Found {
   // a constructed expression we found
   pub prod: Id,

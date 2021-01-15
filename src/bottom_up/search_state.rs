@@ -87,21 +87,24 @@ impl SearchState {
             id: None })
   }
 
-  pub fn run(&mut self, weight: usize) {
+  pub fn run(&mut self, weight: usize) -> Option<Found> {
     println!("run()");
-    if weight <= self.target_weight { return }
+    if weight <= self.target_weight { return None }
     for _ in self.target_weight..weight {
-      self.step();
+      let res = self.step();
+      if res.is_some() {return res}
     }
     println!("done");
+    None
   }
 
 
-  pub fn step(&mut self) {
+  pub fn step(&mut self) -> Option<Found>{
     self.target_weight += 1;
     println!("===Weight {}===",self.target_weight);
 
     let mut to_add = Vec::<Found>::new();
+    let mut success = false;
 
     'outer: for prod in self.prods.iter() {
       let args:Vec<_> = prod.args.iter().filter(|x|x.is_some()).map(|&ty|self.possible_values(ty.unwrap())).collect();
@@ -123,6 +126,7 @@ impl SearchState {
           if let Some(target_val) = &self.target {
             if *target_val == v.val {
               to_add.push(v);
+              success = true;
               return true; //means we found the answer
             }
           }
@@ -185,8 +189,9 @@ impl SearchState {
 
 
 
-    }
+    };
 
+    let res: Option<Found> = if success {to_add.last().cloned()} else {None};
 
     // update with newly found values
     for mut found in to_add.into_iter(){
@@ -211,6 +216,7 @@ impl SearchState {
     }
 
     println!("*** {:?}",self);
+    res
   }
 }
 impl std::fmt::Debug for SearchState {
