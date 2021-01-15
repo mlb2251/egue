@@ -117,7 +117,7 @@ impl SearchState {
 
       // if you wanted you could write some bits as closures (tho also macros would be nice?):
       let check = |argslice: &[&Found]| {self.check_limit(prod,argslice)};
-      let mut insert = |argslice: &[&Found]| {
+      let mut insert = |argslice: &[&Found]| -> bool {
         if let Some(v) = self.try_add(prod,argslice) {
           // check if found solution
           if let Some(target_val) = &self.target {
@@ -165,6 +165,26 @@ impl SearchState {
         },
         _ => panic!("didnt expect >3 args")
       }
+
+
+      // let aux = |args_remaining:Vec<&Vec<Found>, args_so_far: | {
+      //   match args_remaining.len() {
+      //     0 =>
+      //   }
+      //   for arg0 in args[0].iter() {
+      //       if !check(&[arg0]) {break}
+      //       for arg1 in args[1].iter() {
+      //         if !check(&[arg0,arg1]) {break}
+      //         for arg2 in args[2].iter() {
+      //           if !check(&[arg0,arg1,arg2]) {break}
+      //           if insert(&[arg0,arg1,arg2]){break 'outer};
+      //         }
+      //       }
+      //   }
+      // },
+
+
+
     }
 
 
