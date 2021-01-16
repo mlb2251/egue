@@ -12,8 +12,8 @@ symbolic_expressions = "5.0.3"
 rustyline = "7.1.0"
 colored = "2.0.0"
 clap = "2.33.3"
+nom = "6.0.1"
 
 [dev-dependencies]
 criterion = "0.3.3"
-
 

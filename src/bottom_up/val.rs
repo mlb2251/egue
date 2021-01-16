@@ -37,31 +37,40 @@ impl std::clone::Clone for Val {
   }
 }
 
-
 impl std::str::FromStr for Val {
   type Err = ParseValErr;
-  fn from_str(mut s: &str) -> Result<Val,Self::Err> {
-    // it's either going to be an Int or an IntList
-    s = s.trim();
-    if s.len() == 0 {return Err(ParseValErr("Got empty string".into()))}
-    if s.chars().nth(0).unwrap() == '[' {
-      // parsing an IntList
-      if s.chars().last().unwrap() != ']' {return Err(ParseValErr("expected close bracket at end".into()))}
-      s = &s[1..s.len()-1].trim(); // strip brackets
-      s.split(',')
-       .map(|i|i.trim().parse::<i32>())
-       .collect::<Result<_,_>>()
-       .map(|v|Val::IntList(v))
-       .map_err(|_|ParseValErr("malformed IntList".into()))
-    } else {
-      // parsing an Int
-      s.parse::<i32>()
-        .map(|v|Val::Int(v))
-        .map_err(|_|ParseValErr(format!("Failed to parse as int: {}",s)))
-    }
-
+  fn from_str(s: &str) -> Result<Val,Self::Err> {
+    use super::parser::parse_val_complete;
+    parse_val_complete(s)
+      .map(|(_,v)|v)
+      .map_err(|e|ParseValErr(e.to_string()))
   }
 }
+
+// impl std::str::FromStr for Val {
+//   type Err = ParseValErr;
+//   fn from_str(mut s: &str) -> Result<Val,Self::Err> {
+//     // it's either going to be an Int or an IntList
+//     s = s.trim();
+//     if s.len() == 0 {return Err(ParseValErr("Got empty string".into()))}
+//     if s.chars().nth(0).unwrap() == '[' {
+//       // parsing an IntList
+//       if s.chars().last().unwrap() != ']' {return Err(ParseValErr("expected close bracket at end".into()))}
+//       s = &s[1..s.len()-1].trim(); // strip brackets
+//       s.split(',')
+//        .map(|i|i.trim().parse::<i32>())
+//        .collect::<Result<_,_>>()
+//        .map(|v|Val::IntList(v))
+//        .map_err(|_|ParseValErr("malformed IntList".into()))
+//     } else {
+//       // parsing an Int
+//       s.parse::<i32>()
+//         .map(|v|Val::Int(v))
+//         .map_err(|_|ParseValErr(format!("Failed to parse as int: {}",s)))
+//     }
+
+//   }
+// }
 
 // a hash impl for Val that handles the IntToInt case
 // by hashing the underlying function pointer
