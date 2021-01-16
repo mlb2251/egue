@@ -2,7 +2,7 @@ pub mod deepcoder;
 mod val;
 mod search_state;
 
-pub use val::Val;
+pub use val::*;
 pub use search_state::SearchState;
 
 pub type Result = std::result::Result<Val,Error>;

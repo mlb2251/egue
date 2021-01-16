@@ -11,7 +11,7 @@ fn main() {
     .args_from_usage(
       "
       -w --weight [int]             'max weight to run bottom up till'
-      -q --quiet                       'hush hush'
+      -q --quiet                    'hush hush'
       --no-equiv                    'turns off observational equivalence checks'
       "
     ).get_matches();

@@ -48,3 +48,19 @@ fn deepcoder_obs_equiv_search() {
   assert!(res.is_some());
   assert!(format!("{:?}",search_state.expr_of_found(&res.unwrap())).trim() == "(scanl1 (+) (reverse (scanl1 (*) $1)))")
 }
+
+
+#[test]
+fn parsing() {
+  let mut v:Val  = "[1,2,3,4]".parse().unwrap();
+  assert_eq!(v,Val::IntList(vec![1,2,3,4]));
+  assert_ne!(v,Val::IntList(vec![1,2,3]));
+  assert_ne!(v,Val::IntList(vec![1,2,3,5]));
+  assert_ne!(v,Val::Int(4));
+
+  v  = "4".parse().unwrap();
+  assert_eq!(v,Val::Int(4));
+  assert_ne!(v,Val::Int(3));
+
+  assert!("[1,2,,]".parse::<Val>().is_err());
+}
