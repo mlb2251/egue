@@ -1,7 +1,7 @@
 pub mod deepcoder;
+pub mod parser;
 mod val;
 mod search_state;
-pub mod parser;
 
 pub use val::*;
 pub use search_state::SearchState;
