@@ -3,13 +3,15 @@ use super::Val::*;
 use super::Error::*;
 use std::convert::{TryFrom,TryInto};
 
-pub fn get_prods() -> Vec<Prod> {
+pub fn get_prods(num_idxs: usize) -> Vec<Prod> {
   {
+    if num_idxs > 3 {panic!("please run with <=3 inputs. This restriction could be lifted i just havent done that")};
     use super::ReturnType::*;
     use super::Type::*;
     vec![
       Prod::new("$0",     Index(0),             &[],                      idx_0),
       Prod::new("$1",     Index(1),             &[],                      idx_1),
+      Prod::new("$2",     Index(2),             &[],                      idx_2),
 
       Prod::new("head",    Int.into(),       &[IntList],      head),
       Prod::new("last",    Int.into(),       &[IntList],      last),
@@ -68,6 +70,11 @@ pub fn idx_0(args: &[&Val], env: &[Val]) -> Result{
 pub fn idx_1(args: &[&Val], env: &[Val]) -> Result{
   if let [] = args {
     env.get(1).ok_or(RuntimeError).map(|v|v.clone())
+  } else { Err(TypeError) }
+}
+pub fn idx_2(args: &[&Val], env: &[Val]) -> Result{
+  if let [] = args {
+    env.get(2).ok_or(RuntimeError).map(|v|v.clone())
   } else { Err(TypeError) }
 }
 

@@ -30,7 +30,7 @@ fn main() {
   // let env = vec![Val::Int(3),Val::IntList(vec![1,2,3,4,5])];
 
   println!("building productions");
-  let prods = bottom_up::deepcoder::get_prods();
+  let prods = bottom_up::deepcoder::get_prods(env.len());
 
   println!("building search state");
   let observational_equiv = !cfg.is_present("no-equiv");
