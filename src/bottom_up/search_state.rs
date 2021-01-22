@@ -10,15 +10,16 @@ pub struct SearchState {
   target_weight: usize,
   pub observational_equiv: bool,
   pub quiet: bool,
+  pub silent: bool,
   pub target: Option<Val>,
 }
 
 impl SearchState {
-  pub fn new(mut prods: Vec<Prod>, env: Vec<Val>, observational_equiv: bool, quiet: bool, target: Option<Val>) -> SearchState {
+  pub fn new(mut prods: Vec<Prod>, env: Vec<Val>, observational_equiv: bool, quiet: bool, silent: bool, target: Option<Val>) -> SearchState {
     for (i,prod) in prods.iter_mut().enumerate() {
       prod.id = Some(i);
     }
-    SearchState {prods, env, observational_equiv, quiet, target, ..Default::default()}
+    SearchState {prods, env, observational_equiv, quiet, silent, target, ..Default::default()}
   }
   fn possible_values(&self, arg: Type) -> &Vec<Found> {
       match arg {
@@ -88,20 +89,18 @@ impl SearchState {
   }
 
   pub fn run(&mut self, weight: usize) -> Option<Found> {
-    println!("run()");
     if weight <= self.target_weight { return None }
     for _ in self.target_weight..weight {
       let res = self.step();
       if res.is_some() {return res}
     }
-    println!("done");
     None
   }
 
 
   pub fn step(&mut self) -> Option<Found>{
     self.target_weight += 1;
-    println!("===Weight {}===",self.target_weight);
+    if !self.silent { println!("===Weight {}===",self.target_weight) };
 
     let mut to_add = Vec::<Found>::new();
     let mut success = false;
@@ -215,7 +214,8 @@ impl SearchState {
       v.push(found);
     }
 
-    println!("*** {:?}",self);
+    
+    if !self.silent { println!("*** {:?}",self) };
     res
   }
 }
