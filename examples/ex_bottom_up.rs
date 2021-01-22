@@ -1,5 +1,5 @@
 use egue::bottom_up;
-use bottom_up::{Val,SearchState,parser::parse_io_complete};
+use bottom_up::{SearchState,parser::parse_io_complete};
 use std::time::Instant;
 
 use clap::{App};
