@@ -12,7 +12,7 @@ fn main() {
     .args_from_usage(
       "
       -w --weight [int]             'max weight to run bottom up till'
-      --io <io example>             'an io example like [1,2,3,4],6 -> 4'
+      --io <io example>             'an io example like [1,2,3,4],6 -> 4. see help text with -h for a full example'
       -q --quiet                    'hush hush'
       --no-equiv                    'turns off observational equivalence checks'
       "
