@@ -36,7 +36,7 @@ fn main() {
   let observational_equiv = !cfg.is_present("no-equiv");
   let quiet = cfg.is_present("quiet");
   // let target = Some(Val::IntList(vec![48, 62, 78]));
-  let mut search_state = SearchState::new(prods, env, observational_equiv, quiet, target.clone());
+  let mut search_state = SearchState::new(prods, env, observational_equiv, quiet, false, target.clone());
 
   println!("running");
   let tstart = Instant::now();
