@@ -1,7 +1,5 @@
 use super::Type;
 
-#[derive(Debug)]
-pub struct ParseValErr(String);
 
 pub enum Val {
   // an actual value of an intermediate or final result
@@ -38,12 +36,10 @@ impl std::clone::Clone for Val {
 }
 
 impl std::str::FromStr for Val {
-  type Err = ParseValErr;
+  type Err = super::parser::ParseValErr;
   fn from_str(s: &str) -> Result<Val,Self::Err> {
     use super::parser::parse_val_complete;
     parse_val_complete(s)
-      .map(|(_,v)|v)
-      .map_err(|e|ParseValErr(e.to_string()))
   }
 }
 
