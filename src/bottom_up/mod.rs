@@ -44,8 +44,7 @@ pub struct Found {
 impl Prod { 
   pub fn new(name:&str, ty: ReturnType, args_slice: &[Type], func: DSLFunc) -> Prod {
     if args_slice.len() > 3 {panic!("Too many args")};
-    let mut args = Vec::with_capacity(3);
-    args.extend_from_slice(args_slice);
+    let args: Vec<_> = args_slice.iter().copied().collect();
     Prod {name:String::from(name), ty, args, func, weight:1, id:None}
   }
 }
