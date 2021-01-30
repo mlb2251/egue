@@ -31,16 +31,13 @@ impl SearchState {
       }
   }
   pub fn expr_of_found(&self, found: &Found) -> DisplayExpr {
-    let args:Vec<Id> = found.args.iter()
-      .filter_map(|&x|x)
-      .collect();
+    let args = &found.args;
     let prod = &self.prods[found.prod];
     if args.len() == 0 {
       return DisplayExpr::Leaf(prod.name.clone());
     }
     let found_vecs: Vec<&Vec<Found>> = prod.args.iter()
-      .filter_map(|&x|x)
-      .map(|ty|self.possible_values(ty))
+      .map(|&ty|self.possible_values(ty))
       .collect();
     assert_eq!(found_vecs.len(),args.len());
     let args: Vec<DisplayExpr> = args.iter()
@@ -75,11 +72,7 @@ impl SearchState {
       if self.seen.contains(&val) { return None }
     }
 
-    let mut arg_ids = [None;3];
-    let id_vec: Vec<Id> = args.iter().map(|found| found.id).map(|x|x.unwrap()).collect();
-    for (i,id) in id_vec.into_iter().enumerate() {
-      arg_ids[i] = Some(id);
-    }
+    let arg_ids: Vec<Id> = args.iter().map(|found| found.id).map(|x|x.unwrap()).collect();
 
     Some(Found {prod: prod.id.unwrap(), 
             args: arg_ids,
@@ -106,7 +99,7 @@ impl SearchState {
     let mut success = false;
 
     'outer: for prod in self.prods.iter() {
-      let args:Vec<_> = prod.args.iter().filter(|x|x.is_some()).map(|&ty|self.possible_values(ty.unwrap())).collect();
+      let args:Vec<_> = prod.args.iter().map(|&ty|self.possible_values(ty)).collect();
 
       // I know this is terrifying code but let me explain
       // first of all this is just a fun quick project so its fine

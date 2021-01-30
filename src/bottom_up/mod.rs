@@ -26,7 +26,7 @@ pub struct Prod {
   // a production rule
   pub name: String,
   pub ty: ReturnType,
-  pub args: [Option<Type>;3],
+  pub args: Vec<Type>,
   pub weight: usize,
   pub func: DSLFunc,
   pub id: Option<Id>,
@@ -35,7 +35,7 @@ pub struct Prod {
 pub struct Found {
   // a constructed expression we found
   pub prod: Id,
-  pub args: [Option<Id>;3],
+  pub args: Vec<Id>,
   pub weight: usize,
   pub val: Val,
   pub id: Option<Id>,
@@ -44,10 +44,8 @@ pub struct Found {
 impl Prod { 
   pub fn new(name:&str, ty: ReturnType, args_slice: &[Type], func: DSLFunc) -> Prod {
     if args_slice.len() > 3 {panic!("Too many args")};
-    let mut args = [None;3];
-    for (i,ty) in args_slice.iter().enumerate() {
-      args[i] = Some(*ty);
-    }
+    let mut args = Vec::with_capacity(3);
+    args.extend_from_slice(args_slice);
     Prod {name:String::from(name), ty, args, func, weight:1, id:None}
   }
 }
