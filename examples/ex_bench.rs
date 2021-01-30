@@ -14,7 +14,7 @@ fn main() {
   let target = None;
   let mut search_state = SearchState::new(prods, env, observational_equiv, quiet, silent, target);
   let tstart = Instant::now();
-  search_state.run(12);
+  search_state.run(14);
   let elapsed = tstart.elapsed().as_secs_f32();
   println!("{:.2}", elapsed);
 }
